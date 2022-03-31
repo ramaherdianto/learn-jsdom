@@ -1,136 +1,115 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import TabelBuku from "./TabelBuku";
+import axios from "axios";
 
-function ManajemenBuku({ bookList, store }) {
-  const [form, setform] = useState("");
-  const [inputBook, setInputBook] = useState("");
-
-  // Untuk function onChange
-  function handleJudul(Event) {
-    setInputBook({ ...inputBook, judul: Event.target.value });
+function ManajemenBuku() {
+  // Part data
+  const [formMode, setFormMode] = useState("");
+  const [books, setBooks] = useState([]);
+  const [inputForm, setInputForm] = useState();
+  // Part Event Handling
+  function showCreateForm() {
+    setInputForm("");
+    setFormMode("create");
   }
-  function handlePengarang(Event) {
-    setInputBook({ ...inputBook, pengarang: Event.target.value });
-  }
-  function handleHarga(Event) {
-    setInputBook({ ...inputBook, harga: Event.target.value });
-  }
-  function handleStock(Event) {
-    setInputBook({ ...inputBook, stock: Event.target.value });
-  }
-
-  function submitAdd(Event) {
-    Event.preventDefault();
-    store(inputBook);
+  function showEditForm(book) {
+    setInputForm(book);
+    setFormMode("edit");
   }
 
-  // Menampilkan form create data
-  function showCreate() {
-    setform("create");
+  useEffect(() => {
+    retrieveData();
+  }, []);
+
+  function retrieveData() {
+    axios
+      .get("http://localhost:4000/book")
+      .then((response) => {
+        setBooks(response.data);
+      })
+      .catch(function (error) {
+        console.log(error.response.data);
+      });
   }
 
-  // Menampilkan form edit data
-  function showEdit(book) {
-    setInputBook(book);
+  function handleJudul(e) {
+    setInputForm({ ...inputForm, judul: e.target.value });
+  }
 
-    setform("edit");
+  function handlePengarang(e) {
+    setInputForm({ ...inputForm, pengarang: e.target.value });
+  }
+
+  function submitForm(e) {
+    e.preventDefault();
+    if (formMode === "create") {
+      axios
+        // request POST ke server
+        .post("http://localhost:4000/book/add", inputForm)
+        .then(() => {
+          // alert notifikasi dan refresh data di frontend
+          alert("Data berhasil ditambahkan!");
+          retrieveData();
+        })
+        .catch((error) => {
+          console.log(error.response);
+        });
+    }
+    if (formMode === "edit") {
+      axios
+        .put("http://localhost:4000/book/update/" + inputForm._id, inputForm)
+        .then(() => {
+          retrieveData();
+          alert("Data berhasil diubah!");
+        })
+        .catch((error) => {
+          console.log(error.response);
+        });
+    }
+  }
+  function deleteOne(book) {
+    axios
+      .delete("http://localhost:4000/book/delete/" + book._id)
+      .then(() => {
+        retrieveData();
+        alert("Data berhasil dihapus!");
+      })
+      .catch((error) => {
+        console.log(error.response);
+      });
   }
 
   return (
     <div className="container mt-3">
       <h1 className="text-center">Manajemen Buku</h1>
-
-      <button className="btn btn-sm btn-primary my-2" onClick={() => showCreate()}>
+      <button className="bn btn-sm btn-primary my-2" onClick={showCreateForm}>
         Tambah Buku
       </button>
 
-      {/* {Input From} */}
-      {form === "create" && (
-        <div id="fromTambah">
-          <div id="form" className="card py-2 my-3 bg-light">
-            <div className="card-body">
-              <h4>Form Tambah Buku</h4>
-              <form action="" className="row" onSubmit={submitAdd}>
-                <div className="col-3">
-                  <input type="text" name="judul" className="form-control mx-2" placeholder="Judul..." onChange={handleJudul} />
-                </div>
-                <div className="col-3">
-                  <input type="text" name="pengarang" placeholder="Pengarang..." className="form-control" onChange={handlePengarang} />
-                </div>
-                <div className="col-3">
-                  <input type="number" name="harga" placeholder="Harga..." className="form-control" onChange={handleHarga} />
-                </div>
-                <div className="col-3">
-                  <input type="number" name="stock" placeholder="Stock..." className="form-control" onChange={handleStock} />
-                </div>
-                <div className="col-2 mt-3 ml-5">
-                  <input type="submit" value="Submit" className="btn btn-success ml-5" />
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* {ubah data buku} */}
-      {form === "edit" && (
-        <div id="formUbah">
-          <div className="card-body bg-light">
-            <h4>Form Ubah Buku</h4>
-            <form action="" className="row">
-              <div className="col-3">
-                <input type="text" name="judul" className="form-control mx-2" placeholder="Judul..." value={inputBook.judul} />
+      {/* Form */}
+      {formMode !== "" && (
+        <div id="form" className="card py-2 my-3 bg-secondary">
+          <div className="card-body">
+            <h4>Form Buku</h4>
+            <form action="" className="row" onSubmit={submitForm}>
+              <div className="col-6">
+                <input type="text" name="judul" className="form-control mx-2" placeholder="Judul . . ." onChange={handleJudul} value={inputForm.judul || ""} />
+              </div>
+              <div className="col-4">
+                <input type="text" name="pengarang" className="form-control mx-2" placeholder="Pengarang . . ." onChange={handlePengarang} value={inputForm.pengarang || ""} />
               </div>
               <div className="col-3">
-                <input type="text" name="pengarang" placeholder="Pengarang..." className="form-control" value={inputBook.pengarang} />
-              </div>
-              <div className="col-3">
-                <input type="number" name="harga" placeholder="Harga..." className="form-control" value={inputBook.harga} />
-              </div>
-              <div className="col-3">
-                <input type="number" name="stock" placeholder="Stock..." className="form-control" value={inputBook.stock} />
-              </div>
-              <div className="col-2 mt-3 ml-5">
-                <button className="btn-sm btn-warning mx-2">Edit</button>
-                <button className="btn-sm btn-danger">Delete</button>
+                <button type="submit" name="submit" className="btn btn-success mt-3">
+                  Submit
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* {tabel data buku} */}
-      <div id="daftarBuku">
-        <h4 className="mt-3">Tabel Data Buku</h4>
-        <table className="table table-bordered text-center">
-          <thead>
-            <tr>
-              <th>No.</th>
-              <th>Judul</th>
-              <th>Pengarang</th>
-              <td>Harga</td>
-              <td>Stock</td>
-              <th className="col-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookList.map((book, index) => (
-              <tr key={index}>
-                <td> {index + 1} </td>
-                <td>{book.judul}</td>
-                <td>{book.pengarang}</td>
-                <td>{book.harga}</td>
-                <td>{book.stock}</td>
-                <td>
-                  <button className="btn-sm btn-warning mx-2" onClick={() => showEdit(book)}>
-                    Edit
-                  </button>
-                  <button className="btn-sm btn-danger">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Tabel data buku */}
+      <TabelBuku showEdit={showEditForm} books={books} requestToDelete={deleteOne} />
     </div>
   );
 }
